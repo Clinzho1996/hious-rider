@@ -13,7 +13,8 @@ import {
   Alert,
   TextInput,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import Icon from "react-native-vector-icons/Ionicons";
 
@@ -21,6 +22,34 @@ const windowHeight = Dimensions.get("window").height;
 
 const CustomDrawer = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function getData() {
+    const jwt = await AsyncStorage.getItem("AccessToken");
+    let item = { jwt };
+    console.warn(item);
+
+    return fetch(
+      "https://hiousapp.com/api/vendor_auth/fetch_rider_profile.php",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(item),
+      }
+    )
+      .then((response) => response.json())
+      .then((json) => setData(json))
+      .catch((error) => console.error(error))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    getData();
+  }, []);
   return (
     <View style={{ flex: 1 }}>
       <Modal
@@ -108,7 +137,7 @@ const CustomDrawer = ({ navigation }) => {
               padding: 20,
             }}
           >
-            David {"\n"}Ohenacho
+            {data.name}
           </Text>
         </View>
         {/* <DrawerItemList {...props} /> */}
@@ -133,29 +162,6 @@ const CustomDrawer = ({ navigation }) => {
             }}
           >
             Profile
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            paddingTop: 20,
-            marginHorizontal: 30,
-            paddingHorizontal: 0,
-          }}
-          onPress={() => navigation.navigate("Business")}
-        >
-          <Icon name="briefcase-outline" color={"#fff"} size={22} />
-          <Text
-            style={{
-              color: "#FFFFFF",
-              fontSize: 16,
-              lineHeight: 24,
-              padding: 10,
-            }}
-          >
-            Business Profile
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -251,7 +257,7 @@ const CustomDrawer = ({ navigation }) => {
             alignItems: "center",
             borderTopColor: "#A6ACCA66",
             borderTopWidth: 1,
-            marginTop: 100,
+            marginTop: 220,
             paddingTop: 20,
             marginHorizontal: 30,
             paddingHorizontal: 0,

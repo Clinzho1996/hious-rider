@@ -7,9 +7,13 @@
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-sdk android:minSdkVersion="21" xmlns:tools="http://schemas.android.com/tools" android:targetSdkVersion="31" />
 
 <!-- optionally, if you want to record audio: -->
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
@@ -17,6 +21,9 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme">
+      <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCwcpufOybAP5GMtgdZdHcMZQYIE5GeNvM"/>
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -29,5 +36,6 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" />
     </application>
 </manifest>

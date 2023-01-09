@@ -262,7 +262,10 @@ const Settings = ({ navigation }) => {
         }}
       >
         <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Image source={require("../assets/user.png")} />
+          <Image
+            source={require("../assets/user.png")}
+            style={{ width: 60, height: 60, borderRadius: 30 }}
+          />
         </TouchableOpacity>
       </View>
       <View style={{ paddingTop: 0 }}>

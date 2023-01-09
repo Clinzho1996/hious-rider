@@ -1,7 +1,6 @@
-/* eslint-disable eslint-comments/no-unused-disable */
-/* eslint-disable quotes */
 /* eslint-disable prettier/prettier */
 /* eslint-disable react-native/no-inline-styles */
+
 import {
   StyleSheet,
   Text,
@@ -11,10 +10,16 @@ import {
   Dimensions,
 } from "react-native";
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const windowWidth = Dimensions.get("window").width;
 const windowHeight = Dimensions.get("window").height;
 const SignOut = ({ navigation }) => {
+  const logOut = () => {
+    AsyncStorage.removeItem("AccessToken");
+    alert("You have been logged out.");
+    navigation.navigate("Login");
+  };
   return (
     <ImageBackground
       source={require("../assets/map.png")}
@@ -39,9 +44,7 @@ const SignOut = ({ navigation }) => {
               }}
               onPress={() => navigation.navigate("Main")}
             >
-              <Text
-                style={{ color: "#B4BDE4", fontSize: 16, fontWeight: "400" }}
-              >
+              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "400" }}>
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -52,7 +55,7 @@ const SignOut = ({ navigation }) => {
                 paddingVertical: 15,
                 borderRadius: 10,
               }}
-              onPress={() => navigation.navigate("Login")}
+              onPress={logOut}
             >
               <Text
                 style={{

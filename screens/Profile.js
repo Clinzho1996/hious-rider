@@ -1,6 +1,5 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable quotes */
 import {
   StyleSheet,
   Text,
@@ -11,23 +10,137 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Modal,
   Pressable,
+  Modal,
   Alert,
+  ScrollView,
+  RefreshControl,
+  ImageBackground,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Icon from "react-native-vector-icons/Ionicons";
-import { RadioButton } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ImagePicker from "react-native-image-crop-picker";
 
 const windowWidth = Dimensions.get("window").width;
 const windowHeight = Dimensions.get("window").height;
 
+const wait = (timeout) => {
+  return new Promise((resolve) => setTimeout(resolve, timeout));
+};
 const Profile = ({ navigation }) => {
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    wait(2000).then(() => setRefreshing(false));
+  }, []);
   const [modalVisibleEleven, setModalVisibleEleven] = useState(false);
-  const [modalVisibleTwelve, setModalVisibleTwelve] = useState(false);
-  const [modalVisibleThirteen, setModalVisibleThirteen] = useState(false);
-  const [modalVisibleFourteen, setModalVisibleFourteen] = useState(false);
   const [checked, setChecked] = React.useState("first");
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+
+  const showModal = () => {
+    setModalVisibleEleven(true);
+  };
+
+  async function getData() {
+    const jwt = await AsyncStorage.getItem("AccessToken");
+    let item = { jwt };
+    console.warn(item);
+
+    return fetch(
+      "https://hiousapp.com/api/vendor_auth/fetch_rider_profile.php",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(item),
+      }
+    )
+      .then((response) => response.json())
+      .then((json) => setData(json))
+      .catch((error) => console.error(error))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const [phone_number, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [about, setAbout] = useState("");
+
+  async function updateName() {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+    const jwt = await AsyncStorage.getItem("AccessToken");
+    let item = { name, email, location, phone_number, about, jwt };
+    console.warn(item);
+
+    fetch("https://hiousapp.com/api/rider_auth/update_rider_account.php", {
+      method: "PUT",
+      body: JSON.stringify(item),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    })
+      .then((result) => {
+        let statusCode = result.status,
+          success = result.ok;
+        result.json().then((result) => {
+          if (!success) {
+            console.log(result.message);
+            Alert.alert("Warning", result.message);
+            return;
+          } else {
+            console.log(result.message);
+          }
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
+
+  const [image, setImage] = useState(
+    "https://api.adorable.io/avatars/80/abott@adorable.png"
+  );
+
+  const takePhotoFromCamera = () => {
+    ImagePicker.openCamera({
+      compressImageMaxWidth: 300,
+      compressImageMaxHeight: 300,
+      cropping: true,
+      compressImageQuality: 0.7,
+    }).then((image) => {
+      console.log(image);
+      setImage(image.path);
+      this.bs.current.snapTo(1);
+    });
+  };
+
+  const choosePhotoFromLibrary = () => {
+    ImagePicker.openPicker({
+      width: 300,
+      height: 300,
+      cropping: true,
+      compressImageQuality: 0.7,
+    }).then((image) => {
+      console.log(image);
+      setImage(image.path);
+      this.bs.current.snapTo(1);
+    });
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : null}
@@ -41,8 +154,57 @@ const Profile = ({ navigation }) => {
           setModalVisibleEleven(!modalVisibleEleven);
         }}
       >
-        <View style={styles.centeredView}>
+        <ScrollView
+          style={styles.centeredView}
+          contentContainerStyle={{
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <View style={styles.modalView}>
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                display: "flex",
+                flexDirection: "row",
+                paddingTop: 30,
+              }}
+              onPress={choosePhotoFromLibrary}
+            >
+              <ImageBackground
+                source={{
+                  uri: image,
+                }}
+                style={{ height: 100, width: 100 }}
+                imageStyle={{
+                  borderRadius: 15,
+                  borderWidth: 1,
+                  borderColor: "#fff",
+                }}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Icon
+                    name="camera"
+                    size={35}
+                    color="#fff"
+                    style={{
+                      opacity: 0.7,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1,
+                      borderColor: "#fff",
+                      borderRadius: 10,
+                    }}
+                  />
+                </View>
+              </ImageBackground>
+            </TouchableOpacity>
             <Pressable
               style={{
                 display: "flex",
@@ -66,46 +228,12 @@ const Profile = ({ navigation }) => {
                 fontSize: 16,
                 width: 260,
               }}
-              placeholder="David Ohenacho"
-              placeholderTextColor={"#fff"}
+              placeholder={data.name}
+              placeholderTextColor={"#000"}
+              value={data.name}
+              onChangeText={(text) => setName(text)}
             />
 
-            <View style={styles.close}>
-              <TouchableOpacity
-                onPress={() => setModalVisibleEleven(!modalVisibleEleven)}
-              >
-                <Text
-                  style={{ color: "#B4BDE4", fontSize: 16, fontWeight: "400" }}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 16,
-                    fontWeight: "500",
-                    marginLeft: 20,
-                  }}
-                >
-                  Save
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisibleTwelve}
-        onRequestClose={() => {
-          setModalVisibleTwelve(!modalVisibleTwelve);
-        }}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
             <Pressable
               style={{
                 display: "flex",
@@ -115,74 +243,11 @@ const Profile = ({ navigation }) => {
                 right: 20,
                 top: 20,
               }}
-              onPress={() => setModalVisibleTwelve(!modalVisibleTwelve)}
+              onPress={() => setModalVisibleEleven(!modalVisibleEleven)}
             >
               <Icon name="close" size={30} color={"#fff"} />
             </Pressable>
-            <Text style={styles.modalText}>Gender</Text>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "500" }}>
-                Male
-              </Text>
-              <RadioButton
-                value="Male"
-                status={checked === "first" ? "checked" : "unchecked"}
-                onPress={() => setChecked("first")}
-                color="#fff"
-              />
-            </View>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "500" }}>
-                Female
-              </Text>
-              <RadioButton
-                value="Female"
-                status={checked === "second" ? "checked" : "unchecked"}
-                onPress={() => setChecked("second")}
-                color="#fff"
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisibleThirteen}
-        onRequestClose={() => {
-          setModalVisibleThirteen(!modalVisibleThirteen);
-        }}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Pressable
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "flex-end",
-                position: "absolute",
-                right: 20,
-                top: 20,
-              }}
-              onPress={() => setModalVisibleThirteen(!modalVisibleThirteen)}
-            >
-              <Icon name="close" size={30} color={"#fff"} />
-            </Pressable>
-            <Text style={styles.modalText}>Date of Birth</Text>
+            <Text style={styles.modalText}>Email address</Text>
             <TextInput
               style={{
                 backgroundColor: "#29396D",
@@ -192,59 +257,26 @@ const Profile = ({ navigation }) => {
                 fontSize: 16,
                 width: 260,
               }}
-              placeholder="David Ohenacho"
-              placeholderTextColor={"#fff"}
+              placeholder={data.email}
+              placeholderTextColor={"#000"}
+              value={data.email}
+              onChangeText={(text) => setEmail(text)}
             />
-
-            <View style={styles.close}>
-              <TouchableOpacity
-                onPress={() => setModalVisibleThirteen(!modalVisibleThirteen)}
-              >
-                <Text
-                  style={{ color: "#B4BDE4", fontSize: 16, fontWeight: "400" }}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 16,
-                    fontWeight: "500",
-                    marginLeft: 20,
-                  }}
-                >
-                  Save
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisibleFourteen}
-        onRequestClose={() => {
-          setModalVisibleFourteen(!modalVisibleFourteen);
-        }}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Pressable
+            <Text style={styles.modalText}>Phone number</Text>
+            <TextInput
               style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "flex-end",
-                position: "absolute",
-                right: 20,
-                top: 20,
+                backgroundColor: "#29396D",
+                padding: 10,
+                borderRadius: 6,
+                color: "#fff",
+                fontSize: 16,
+                width: 260,
               }}
-              onPress={() => setModalVisibleFourteen(!modalVisibleFourteen)}
-            >
-              <Icon name="close" size={30} color={"#fff"} />
-            </Pressable>
+              placeholder={data.phone_number}
+              placeholderTextColor={"#000"}
+              value={data.phone_number}
+              onChangeText={(text) => setPhoneNumber(text)}
+            />
             <Text style={styles.modalText}>Address</Text>
             <TextInput
               style={{
@@ -255,15 +287,31 @@ const Profile = ({ navigation }) => {
                 fontSize: 16,
                 width: 260,
               }}
-              multiline={true}
-              numberOfLines={6}
-              placeholder="Lorem ipsum dolor sit amet,  consectetur adipiscing elit. Nulla eget dui vitae amet. Dui, ante varius nulla natoque facilisis morbi."
+              placeholder={data.location}
               placeholderTextColor={"#fff"}
+              value={location}
+              multiline={true}
+              onChangeText={(text) => setLocation(text)}
             />
-
+            <Text style={styles.modalText}>Profile</Text>
+            <TextInput
+              style={{
+                backgroundColor: "#29396D",
+                padding: 10,
+                borderRadius: 6,
+                color: "#fff",
+                fontSize: 16,
+                width: 260,
+              }}
+              multiline={true}
+              placeholder={data.about}
+              placeholderTextColor={"#f7f7f7"}
+              value={about}
+              onChangeText={(text) => setAbout(text)}
+            />
             <View style={styles.close}>
               <TouchableOpacity
-                onPress={() => setModalVisibleFourteen(!modalVisibleFourteen)}
+                onPress={() => setModalVisibleEleven(!modalVisibleEleven)}
               >
                 <Text
                   style={{ color: "#B4BDE4", fontSize: 16, fontWeight: "400" }}
@@ -271,7 +319,14 @@ const Profile = ({ navigation }) => {
                   Cancel
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisibleEleven(!modalVisibleEleven);
+                  Alert.alert("Success", "Profile updated successfully");
+                  navigation.navigate("Home");
+                  updateName();
+                }}
+              >
                 <Text
                   style={{
                     color: "#fff",
@@ -285,130 +340,235 @@ const Profile = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </Modal>
-      <View
-        style={{
-          paddingHorizontal: 0,
-          paddingVertical: 20,
-          flexDirection: "row",
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.navigate("Main")}>
-          <Icon name="arrow-back" size={30} color={"#828282"} />
-        </TouchableOpacity>
-      </View>
-      <View>
-        <View>
-          <View
-            style={{
-              justifyContent: "center",
-              display: "flex",
-              flexDirection: "row",
-              paddingTop: 30,
-            }}
-          >
-            <Image
-              source={require("../assets/profile.png")}
-              style={{ width: 120, height: 120, borderRadius: 20 }}
-            />
-          </View>
-          <View style={{ paddingTop: 30 }}>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 0,
-                borderBottomColor: "#97979733",
-                borderBottomWidth: 1,
-                paddingVertical: 20,
-              }}
-            >
-              <Text
-                style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
-              >
-                Name
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisibleEleven(true)}>
-                <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
-                  David Ohenacho
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 0,
-                borderBottomColor: "#97979733",
-                borderBottomWidth: 1,
-                paddingVertical: 20,
-              }}
-            >
-              <Text
-                style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
-              >
-                Gender
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisibleTwelve(true)}>
-                <Text style={{ color: "#B9BCBF", fontSize: 16 }}>Male</Text>
-              </TouchableOpacity>
-            </View>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 0,
-                borderBottomColor: "#97979733",
-                borderBottomWidth: 1,
-                paddingVertical: 20,
-              }}
-            >
-              <Text
-                style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
-              >
-                Date of birth
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisibleThirteen(true)}>
-                <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
-                  Apr. 11th, 1991
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                paddingHorizontal: 0,
-                paddingVertical: 20,
-                alignItems: "flex-start",
-              }}
-            >
-              <Text
-                style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
-              >
-                Address
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisibleFourteen(true)}>
-                <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
-                  Lorem ipsum dolor sit amet, consecte adipiscing elit.
-                  Pharetra.
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          <TouchableOpacity style={styles.btnPrimary}>
-            <Text style={styles.reg}>Save changes</Text>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            size="default"
+            color="#3E90FC"
+          />
+        }
+      >
+        <View
+          style={{
+            paddingHorizontal: 0,
+            paddingVertical: 20,
+            flexDirection: "row",
+          }}
+        >
+          <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+            <Icon name="arrow-back" size={30} color={"#828282"} />
           </TouchableOpacity>
         </View>
-      </View>
+        <View>
+          <View>
+            <View
+              style={{
+                justifyContent: "center",
+                display: "flex",
+                flexDirection: "row",
+                paddingTop: 30,
+              }}
+            >
+              <Image
+                // source={require('../assets/user.png')}
+                source={{
+                  uri: image,
+                }}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 20,
+                  borderColor: "#212E5A",
+                  borderWidth: 2,
+                }}
+              />
+            </View>
+            <View style={{ paddingTop: 30 }}>
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 0,
+                  borderBottomColor: "#97979733",
+                  borderBottomWidth: 1,
+                  paddingVertical: 20,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
+                >
+                  Name
+                </Text>
+                {loading ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      paddingLeft: 10,
+                      fontWeight: "400",
+                      color: "#5C5C5C",
+                    }}
+                  >
+                    Loading
+                  </Text>
+                ) : (
+                  <Text
+                    style={{
+                      color: "#B9BCBF",
+                      fontSize: 16,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {data.name}
+                  </Text>
+                )}
+              </View>
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 0,
+                  borderBottomColor: "#97979733",
+                  borderBottomWidth: 1,
+                  paddingVertical: 20,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
+                >
+                  Email
+                </Text>
+                {loading ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      paddingLeft: 10,
+                      fontWeight: "400",
+                      color: "#5C5C5C",
+                    }}
+                  >
+                    Loading
+                  </Text>
+                ) : (
+                  <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
+                    {data.email}
+                  </Text>
+                )}
+              </View>
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 0,
+                  borderBottomColor: "#97979733",
+                  borderBottomWidth: 1,
+                  paddingVertical: 20,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
+                >
+                  Phone number
+                </Text>
+                {loading ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      paddingLeft: 10,
+                      fontWeight: "400",
+                      color: "#5C5C5C",
+                    }}
+                  >
+                    Loading
+                  </Text>
+                ) : (
+                  <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
+                    {data.phone_number}
+                  </Text>
+                )}
+              </View>
+              <View
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 0,
+                  paddingVertical: 20,
+                  alignItems: "flex-start",
+                  borderBottomColor: "#97979733",
+                  borderBottomWidth: 1,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
+                >
+                  Profile
+                </Text>
+                {loading ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      paddingLeft: 10,
+                      fontWeight: "400",
+                      color: "#5C5C5C",
+                    }}
+                  >
+                    Loading
+                  </Text>
+                ) : (
+                  <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
+                    {data.about}
+                  </Text>
+                )}
+              </View>
+              <View
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 0,
+                  paddingVertical: 20,
+                  alignItems: "flex-start",
+                }}
+              >
+                <Text
+                  style={{ fontSize: 16, color: "#5C5C5C", fontWeight: "500" }}
+                >
+                  Address
+                </Text>
+                {loading ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      paddingLeft: 10,
+                      fontWeight: "400",
+                      color: "#5C5C5C",
+                    }}
+                  >
+                    Loading
+                  </Text>
+                ) : (
+                  <Text style={{ color: "#B9BCBF", fontSize: 16 }}>
+                    {data.location}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.btnPrimary} onPress={showModal}>
+              <Text style={styles.reg}>Edit Profile</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -437,8 +597,6 @@ const styles = StyleSheet.create({
   },
   centeredView: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     marginTop: 0,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
@@ -470,7 +628,8 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 15,
     textAlign: "left",
-    fontSize: 20,
+    marginTop: 15,
+    fontSize: 14,
     color: "#fff",
     fontWeight: "600",
   },

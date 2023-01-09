@@ -30,21 +30,21 @@ import AccountSuccess from "../screens/AccountSuccess";
 import OrderComplete from "../screens/OrderComplete";
 import OrderCancel from "../screens/OrderCancel";
 import CancelSuccess from "../screens/CancelSuccess";
-import RidersPhoto from "../screens/RidersPhoto";
+import Onboarding from "../screens/Onboarding";
+import EmailVerify from "../screens/EmailVerify";
 
 const Drawer = createDrawerNavigator();
 
 const AppStack = () => {
   return (
     <Drawer.Navigator
-      initialRouteName="Welcome"
+      initialRouteName="Onboarding"
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
         headerShown: false,
         DrawerNavigatorBarVisible: false,
       }}
     >
-      <Drawer.Screen name="RidersPhoto" component={RidersPhoto} />
       <Drawer.Screen name="Receipts" component={Receipts} />
       <Drawer.Screen name="CancelSuccess" component={CancelSuccess} />
       <Drawer.Screen name="OrderCancel" component={OrderCancel} />
@@ -72,6 +72,8 @@ const AppStack = () => {
       <Drawer.Screen name="Settings" component={Settings} />
       <Drawer.Screen name="Personal" component={Personaldetails} />
       <Drawer.Screen name="Required" component={Required} />
+      <Drawer.Screen name="Onboarding" component={Onboarding} />
+      <Drawer.Screen name="EmailVerify" component={EmailVerify} />
     </Drawer.Navigator>
   );
 };

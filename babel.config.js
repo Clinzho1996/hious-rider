@@ -4,5 +4,6 @@ module.exports = {
   plugins: [
     "@babel/plugin-transform-flow-strip-types",
     "react-native-reanimated/plugin",
+    "module:react-native-dotenv",
   ],
 };

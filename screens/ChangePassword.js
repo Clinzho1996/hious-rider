@@ -11,14 +11,57 @@ import {
   Dimensions,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import Icon from "react-native-vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const windowWidth = Dimensions.get("window").width;
 const windowHeight = Dimensions.get("window").height;
 
 const ChangePassword = ({ navigation }) => {
+  const [password, setPassword] = useState("");
+  const [confirm_password, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function changePassword() {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
+    const jwt = await AsyncStorage.getItem("ResetToken");
+    let item = { password, confirm_password, jwt };
+    console.warn(item);
+
+    fetch("https://hiousapp.com/api/rider_auth/reset.php", {
+      method: "PUT",
+      body: JSON.stringify(item),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    })
+      .then((result) => {
+        let statusCode = result.status,
+          success = result.ok;
+        result.json().then((result) => {
+          if (!success) {
+            console.log(result.message);
+            Alert.alert("Warning", result.message);
+            return;
+          } else {
+            console.log(result);
+            Alert.alert("Success", result.message);
+            navigation.navigate("Login");
+          }
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : null}
@@ -75,6 +118,8 @@ const ChangePassword = ({ navigation }) => {
               placeholder="Enter new password"
               placeholderTextColor={"#C4C4C4"}
               secureTextEntry={true}
+              value={password}
+              onChangeText={(text) => setPassword(text)}
             />
           </View>
           <View
@@ -102,13 +147,15 @@ const ChangePassword = ({ navigation }) => {
               placeholder="Confirm new password"
               placeholderTextColor={"#C4C4C4"}
               secureTextEntry={true}
+              value={confirm_password}
+              onChangeText={(text) => setConfirmPassword(text)}
             />
           </View>
           <View>
             <View>
               <TouchableOpacity
                 style={styles.btnPrimary}
-                onPress={() => navigation.navigate("Success")}
+                onPress={changePassword}
               >
                 <Text style={styles.reg}>Update Password</Text>
               </TouchableOpacity>
