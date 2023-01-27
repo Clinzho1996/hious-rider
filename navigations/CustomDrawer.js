@@ -31,7 +31,7 @@ const CustomDrawer = ({ navigation }) => {
     console.warn(item);
 
     return fetch(
-      "https://hiousapp.com/api/vendor_auth/fetch_rider_profile.php",
+      "https://hiousapp.com/api/rider_auth/fetch_rider_profile.php",
       {
         method: "POST",
         headers: {
